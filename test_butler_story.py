@@ -84,27 +84,12 @@ def problem(verbose):
         )
     )
 
-    print('===== initial state =====')
-    node = problem.initial_state
-    print(node)
-
-    print('===== grounded action=====')
-    for grounded_action in problem.grounded_actions:
-        print(grounded_action)
-        print('- precondition -')
-        print(grounded_action.preconditions)
-        print('- numerical_precondition -')
-        print(grounded_action.num_preconditions)
-
-        print('next state')
-        if node.is_true(grounded_action.preconditions, grounded_action.num_preconditions):
-
-            next_state = node.apply(grounded_action, monotone=False)
-            print(next_state)
-
-        print('---- end of action ----\n')
-
-    print('===== End =====')
+    plan = planner(problem, verbose=verbose)
+    if plan is None:
+        print('No Plan!')
+    else:
+        for action in plan:
+            print(action)
 
 
 if __name__ == '__main__':

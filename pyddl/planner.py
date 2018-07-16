@@ -51,10 +51,22 @@ def planner(problem, heuristic=None, state0=None, goal=None,
             closed.add(node)
 
             # Apply all applicable actions to get successors
-            successors = set(node.apply(action, monotone)
-                             for action in problem.grounded_actions
-                             if node.is_true(action.preconditions,
-                                             action.num_preconditions))
+            if not verbose:
+                successors = set(node.apply(action, monotone)
+                                 for action in problem.grounded_actions
+                                 if node.is_true(action.preconditions, action.num_preconditions))
+            else:
+                successors = set()
+                for action in problem.grounded_actions:
+                    if node.is_true(action.preconditions, action.num_preconditions):
+                        print(f"Action : {action}")
+                        next_node = node.apply(action, monotone)
+                        successors.add(next_node)
+
+                        print('----- next node -----')
+                        print(next_node)
+                        print('==========')
+
 
             # Compute heuristic and add to fringe
             for successor in successors:
