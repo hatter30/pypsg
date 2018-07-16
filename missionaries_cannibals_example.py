@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """
+code based on : https://github.com/garydoranjr/pyddl
+
 Example of using PyDDL to solve the "Missionaries and Cannibals" Problem.
 A boat must transport a group of 3 missionaries and 3 cannibals across a river,
 but at no time can the cannibals outnumber the missionaries at either side of

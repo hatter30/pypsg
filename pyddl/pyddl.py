@@ -1,4 +1,6 @@
 """
+code based on : https://github.com/garydoranjr/pyddl
+
 Classes and functions that allow creating a PDDL-like
 problem and domain definition for planning
 """

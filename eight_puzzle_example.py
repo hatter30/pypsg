@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """
+code based on : https://github.com/garydoranjr/pyddl
+
 Example of using PyDDL to solve an eight-puzzle. Each number is a tile that
 can slide vertically or horizontally to fill in the blank space. This "hard"
 instance (requiring the maximum of 31 steps) is taken from the following paper:
