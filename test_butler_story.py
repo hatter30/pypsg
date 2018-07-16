@@ -27,16 +27,16 @@ def problem(verbose):
         Action(
             'Carry',
             parameters=(
-                ('owner', 'o'),
+                ('owner', 'from'),
                 ('object', 'obj'),
-                ('target', 't'),
+                ('target', 'to'),
             ),
             preconditions=(
-                ('have', 'o', 'obj'),
+                ('have', 'from', 'obj'),
             ),
             effects=(
-                neg(('have', 'o', 'obj')),
-                ('have', 't', 'obj'),
+                neg(('have', 'from', 'obj')),
+                ('have', 'to', 'obj'),
             ),
         ),
         Action(
