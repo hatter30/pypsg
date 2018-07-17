@@ -33,6 +33,7 @@ def problem(verbose):
             ),
             preconditions=(
                 ('have', 'from', 'obj'),
+                ('!=', 'from', 'to'),
             ),
             effects=(
                 neg(('have', 'from', 'obj')),
@@ -65,6 +66,7 @@ def problem(verbose):
             ),
             effects=(
                 ('dead', 'o'),
+                neg(('drinking', 'o', 'obj')),
             ),
         ),
     ))
@@ -77,7 +79,7 @@ def problem(verbose):
         },
         init=(
             ('have', 'butler', 'poison'),
-            ('have', 'butler', 'wine')
+            ('have', 'butler', 'wine'),
         ),
         goal=(
             ('dead', 'lord'),

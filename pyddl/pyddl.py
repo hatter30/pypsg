@@ -12,7 +12,9 @@ NUM_OPS = {
     '<' : ops.lt,
     '=' : ops.eq,
     '>=': ops.ge,
-    '<=': ops.le
+    '<=': ops.le,
+    '==': ops.is_,
+    '!=': ops.is_not
 }
 
 class Domain(object):
@@ -183,7 +185,12 @@ def _grounder(arg_names, args):
     for arg_name, arg in zip(arg_names, args):
         namemap[arg_name] = arg
     def _ground_by_names(predicate):
-        return predicate[0:1] + tuple(namemap.get(arg, arg) for arg in predicate[1:])
+        if isinstance(predicate, tuple):
+            return tuple(namemap.get(arg, arg) for arg in predicate)
+        elif isinstance(predicate, str):
+            return namemap.get(predicate, predicate)
+        else:
+            raise Exception(f"Invalid Case predicate type : {type(predicate)}")
     return _ground_by_names
 
 def _num_pred(op, x, y):
@@ -196,7 +203,7 @@ def _num_pred(op, x, y):
             if type(o) == int:
                 operands[i] = o
             else:
-                operands[i] = state.f_dict[o]
+                operands[i] = state.f_dict.get(o, o)
         return op(*operands)
     return predicate
 
