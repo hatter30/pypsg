@@ -6,6 +6,7 @@ problem and domain definition for planning
 """
 from itertools import product
 import operator as ops
+import copy
 
 NUM_OPS = {
     '>' : ops.gt,
@@ -78,6 +79,12 @@ class Problem(object):
             else:
                 self.goals.append(g)
 
+        self.goal_predicates = goal
+
+    @property
+    def init_predicates(self):
+        return self.initial_state.to_predicates()
+
 class State(object):
 
     def __init__(self, predicates, functions, cost=0, predecessor=None):
@@ -120,6 +127,11 @@ class State(object):
         plan.reverse()
         return plan
 
+    def to_predicates(self):
+        predicates = list(self.predicates)
+        predicates += [('=', pred_1, pred_2) for pred_1, pred_2 in self.functions]
+        return tuple(predicates)
+
     # Implement __hash__ and __eq__ so we can easily
     # check if we've encountered this state before
 
@@ -160,8 +172,12 @@ class Action(object):
                           set of (permuted) arguments
         """
         self.name = name
-        if len(parameters) > 0:
+        if len(parameters) > 0 and isinstance(parameters[0], tuple):
             self.types, self.arg_names = zip(*parameters)
+        elif len(parameters) > 0 and isinstance(parameters[0], str):
+            self.types, self.arg_names = parameters
+        elif len(parameters) > 0:
+            raise Exception("Invalid parameters")
         else:
             self.types = tuple()
             self.arg_names = tuple()
