@@ -193,6 +193,10 @@ class Action(object):
         arglist = ', '.join(['%s - %s' % pair for pair in zip(self.arg_names, self.types)])
         return '%s(%s)' % (self.name, arglist)
 
+    def __repr__(self):
+        arglist = ', '.join(['%s - %s' % pair for pair in zip(self.arg_names, self.types)])
+        return '%s(%s)' % (self.name, arglist)
+
 def _grounder(arg_names, args):
     """
     Returns a function for grounding predicates and function symbols
@@ -269,5 +273,9 @@ class _GroundedAction(object):
                 self.add_effects.append(ground(effect))
 
     def __str__(self):
+        arglist = ', '.join(map(str, self.sig[1:]))
+        return '%s(%s)' % (self.sig[0], arglist)
+
+    def __repr__(self):
         arglist = ', '.join(map(str, self.sig[1:]))
         return '%s(%s)' % (self.sig[0], arglist)
