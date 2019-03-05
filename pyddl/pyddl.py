@@ -174,15 +174,22 @@ class Action(object):
         self.name = name
         if len(parameters) > 0 and isinstance(parameters[0], tuple):
             self.types, self.arg_names = zip(*parameters)
-        elif len(parameters) > 0 and isinstance(parameters[0], str):
-            self.types, self.arg_names = parameters
         elif len(parameters) > 0:
             raise Exception("Invalid parameters")
         else:
             self.types = tuple()
             self.arg_names = tuple()
-        self.preconditions = preconditions
-        self.effects = effects
+
+        if len(preconditions) > 0 and not isinstance(preconditions[0], tuple):
+            raise Exception("Invalid preconditions")
+        else:
+            self.preconditions = preconditions
+
+        if len(effects) > 0 and not isinstance(effects[0], tuple):
+            raise Exception("Invalid effects")
+        else:
+            self.effects = effects        
+        
         self.unique = unique
         self.no_permute = no_permute
 
@@ -206,8 +213,8 @@ def _grounder(arg_names, args):
         namemap[arg_name] = arg
     def _ground_by_names(predicate):
         if isinstance(predicate, tuple):
-            return tuple(namemap.get(arg, arg) for arg in predicate)
-        elif isinstance(predicate, str):
+            return tuple(namemap.get(arg, _ground_by_names(arg)) for arg in predicate)
+        elif isinstance(predicate, str) or isinstance(predicate, int):
             return namemap.get(predicate, predicate)
         else:
             raise Exception(f"Invalid Case predicate type : {type(predicate)}")
@@ -238,39 +245,9 @@ class _GroundedAction(object):
         # Ground Action Signature
         self.sig = ground((self.name,) + action.arg_names)
 
-        # Ground Preconditions
-        self.preconditions = list()
-        self.num_preconditions = list()
-        for pre in action.preconditions:
-            if pre[0] in NUM_OPS:
-                operands = [0, 0]
-                for i in range(2):
-                    if type(pre[i + 1]) == int:
-                        operands[i] = pre[i + 1]
-                    else:
-                        operands[i] = ground(pre[i + 1])
-                np = _num_pred(NUM_OPS[pre[0]], *operands)
-                self.num_preconditions.append(np)
-            else:
-                self.preconditions.append(ground(pre))
-
-        # Ground Effects
-        self.add_effects = list()
-        self.del_effects = list()
-        self.num_effects = list()
-        for effect in action.effects:
-            if effect[0] == -1:
-                self.del_effects.append(ground(effect[1]))
-            elif effect[0] == '+=':
-                function = ground(effect[1])
-                value = effect[2]
-                self.num_effects.append((function, value))
-            elif effect[0] == '-=':
-                function = ground(effect[1])
-                value = -effect[2]
-                self.num_effects.append((function, value))
-            else:
-                self.add_effects.append(ground(effect))
+        # Ground Preconditions, Effects
+        self.preconditions = [ground(pre) for pre in action.preconditions]
+        self.effects = [ground(effect) for effect in action.effects]
 
     def __str__(self):
         arglist = ', '.join(map(str, self.sig[1:]))
