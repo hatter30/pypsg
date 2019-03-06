@@ -59,60 +59,63 @@ class Problem(object):
         # Ground actions from domain
         self.grounded_actions = domain.ground(objects)
 
-        # Parse Initial State
-        predicates = list()
-        functions = dict()
-        for predicate in init:
-            if predicate[0] == '=':
-                functions[predicate[1]] = predicate[2]
-            else:
-                predicates.append(predicate)
-        self.initial_state = State(predicates, functions)
+        self.init = init 
+        self.goal = goal
 
-        # Parse Goal State
-        self.goals = list()
-        self.num_goals = list()
-        for g in goal:
-            if g[0] in NUM_OPS:
-                ng = _num_pred(NUM_OPS[g[0]], *g[1:])
-                self.num_goals.append(ng)
-            else:
-                self.goals.append(g)
-
-        self.goal_predicates = goal
-
-    @property
-    def init_predicates(self):
-        return self.initial_state.to_predicates()
+    def initial_state(self):
+        return State(self.init)
 
 class State(object):
 
-    def __init__(self, predicates, functions, cost=0, predecessor=None):
+    def __init__(self, predicates, cost=0, predecessor=None):
         """Represents a state for A* search"""
         self.predicates = frozenset(predicates)
-        self.functions = tuple(functions.items())
-        self.f_dict = functions
         self.predecessor = predecessor
         self.cost = cost
 
-    def is_true(self, predicates, num_predicates):
-        return (all(p in self.predicates for p in predicates) and
-                all(np(self) for np in num_predicates))
+    def is_true(self, preconditions):
+        preds = set([pre for pre in self.predicates if pre[0] != "="])
+        num_preds = set(self.predicates) - preds
+        functions = {func: num for _, func, num in num_preds}
+
+        def _num_pred(op, x, y):
+            operands = [0, 0]
+            for i, o in enumerate((x, y)):
+                if type(o) == int:
+                    operands[i] = o
+                else:
+                    operands[i] = functions.get(o, o)
+            return NUM_OPS[op](*operands)
+
+        preconds = [precond for precond in preconditions if precond[0] not in NUM_OPS]
+        num_preconds = [_num_pred(*precond) for precond in preconditions if precond[0] in NUM_OPS]
+
+        return all(p in preds for p in preconds) and all(p for p in num_preconds)
 
     def apply(self, action, monotone=False):
         """
         Apply the action to this state to produce a new state.
         If monotone, ignore the delete list (for A* heuristic)
         """
-        new_preds = set(self.predicates)
-        new_preds |= set(action.add_effects)
+        new_preds = set([pre for pre in self.predicates if pre[0] != "="])
+        num_preds = set(self.predicates) - new_preds
+        new_functions = {func: num for _, func, num in num_preds}
+
+        add_effects = [effect for effect in action.effects if effect[0] not in [-1, "+=", "-="]]
+        del_effects =   [effect[1] for effect in action.effects if effect[0] == -1]
+        num_effects =   [(effect[1], effect[2]) for effect in action.effects if effect[0] == "+="] +\
+                        [(effect[1], -effect[2]) for effect in action.effects if effect[0] == "-="]
+
+        assert len(action.effects) == len(add_effects + del_effects + num_effects)
+        
+        new_preds |= set(add_effects)
         if not monotone:
-            new_preds -= set(action.del_effects)
-        new_functions = dict()
-        new_functions.update(self.functions)
-        for function, value in action.num_effects:
+            new_preds -= set(del_effects)
+        for function, value in num_effects:
             new_functions[function] += value
-        return State(new_preds, new_functions, self.cost + 1, (self, action))
+        new_preds |= set(('=', function, value) for function, value in new_functions.items())
+
+        return State(new_preds, self.cost + 1, (self, action))
 
     def plan(self):
         """
@@ -127,24 +130,18 @@ class State(object):
         plan.reverse()
         return plan
 
-    def to_predicates(self):
-        predicates = list(self.predicates)
-        predicates += [('=', pred_1, pred_2) for pred_1, pred_2 in self.functions]
-        return tuple(predicates)
-
     # Implement __hash__ and __eq__ so we can easily
     # check if we've encountered this state before
 
     def __hash__(self):
-        return hash((self.predicates, self.functions))
+        return hash(self.predicates)
 
     def __eq__(self, other):
-        return ((self.predicates, self.functions) ==
-                (other.predicates, other.functions))
+        return self.predicates == other.predicates
 
     def __str__(self):
-        return ('Predicates:\n%s' % '\n'.join(map(str, self.predicates))
-                +'\nFunctions:\n%s' % '\n'.join(map(str, self.functions)))
+        return 'Predicates:\n%s' % '\n'.join(map(str, self.predicates))
+
     def __lt__(self, other):
         return hash(self) < hash(other)
 
@@ -219,20 +216,6 @@ def _grounder(arg_names, args):
         else:
             raise Exception(f"Invalid Case predicate type : {type(predicate)}")
     return _ground_by_names
-
-def _num_pred(op, x, y):
-    """
-    Returns a numerical predicate that is called on a State.
-    """
-    def predicate(state):
-        operands = [0, 0]
-        for i, o in enumerate((x, y)):
-            if type(o) == int:
-                operands[i] = o
-            else:
-                operands[i] = state.f_dict.get(o, o)
-        return op(*operands)
-    return predicate
 
 class _GroundedAction(object):
     """
